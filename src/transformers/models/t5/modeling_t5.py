@@ -45,11 +45,28 @@ from ...utils import logging
 from ...utils.model_parallel_utils import assert_device_map, get_device_map
 from .configuration_t5 import T5Config
 
-
 logger = logging.get_logger(__name__)
 
 _CONFIG_FOR_DOC = "T5Config"
 _TOKENIZER_FOR_DOC = "T5Tokenizer"
+
+####################################################
+# Resources needed for Attention Tweaking
+####################################################
+
+from .attention_tweaks import *
+
+w1_i = 17
+w2_i = 20
+
+tweaking_vectors = True
+tweaking_weights = False
+
+new_value = 1
+new_magnitude = 7
+
+current_attn_weights = None
+attn_qk_vecs = None
 
 ####################################################
 # This dict contains ids and associated url
@@ -476,6 +493,17 @@ class T5Attention(nn.Module):
         value_states = project(
             hidden_states, self.v, key_value_states, past_key_value[1] if past_key_value is not None else None
         )
+        
+        ####################################################
+        # Key vector transformation for Attention Tweaking
+        ####################################################
+        
+        if not self.is_decoder and tweaking_vectors:
+            key_states = adjust_att_vecs(query_states, key_states,
+            w1_i, w2_i, new_value, new_magnitude)
+            
+        ####################################################
+        ####################################################
 
         # compute scores
         scores = torch.matmul(
@@ -511,6 +539,24 @@ class T5Attention(nn.Module):
         # Mask heads if we want to
         if layer_head_mask is not None:
             attn_weights = attn_weights * layer_head_mask
+            
+        ####################################################
+        # Softmax adjustment tweak for Attention Tweaking
+        ####################################################
+
+        if not self.is_decoder:
+
+            global current_attn_weights
+            global attn_qk_vecs
+    
+            attn_qk_vecs = [query_states, key_states]
+            current_attn_weights = attn_weights
+
+            if tweaking_weights:
+                current_attn_weights = adjust_att_scores(attn_weights, w1_i, w2_i, new_value)
+        
+        ####################################################
+        ####################################################
 
         attn_output = unshape(torch.matmul(attn_weights, value_states))  # (batch_size, seq_length, dim)
         attn_output = self.o(attn_output)
@@ -1442,6 +1488,22 @@ class T5ForConditionalGeneration(T5PreTrainedModel):
         # Model parallel
         self.model_parallel = False
         self.device_map = None
+        
+    
+    ####################################################
+    # Returns attention weights for softmax adjustment.
+    ####################################################
+    def get_attn_weights(self):
+    	global current_attn_weights
+    	return current_attn_weights
+    	
+    ####################################################
+    # Returns query and key vectors last used in
+    # self-attention.
+    ####################################################
+    def get_attn_qk_vecs(self):
+    	global attn_qk_vecs
+    	return attn_qk_vecs
 
     @add_start_docstrings(PARALLELIZE_DOCSTRING)
     def parallelize(self, device_map=None):
