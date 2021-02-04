@@ -59,7 +59,7 @@ from .attention_tweaks import *
 w1_i = 17
 w2_i = 20
 
-tweaking_vectors = True
+tweaking_vectors = False
 tweaking_weights = False
 
 new_value = 1
