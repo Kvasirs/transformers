@@ -544,6 +544,9 @@ class T5Attention(nn.Module):
             current_attention_scores = attn_weights
 
             if tweaking_scores:
+
+                print("tweaking scores!")
+                
                 # Set attention scores to new value.
                 current_attention_scores = adjust_att_scores(attn_weights,
                                                              first_word_index,
