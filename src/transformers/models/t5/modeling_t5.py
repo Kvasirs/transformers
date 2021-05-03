@@ -537,6 +537,8 @@ class T5Attention(nn.Module):
 
         if not self.is_decoder:
 
+            print("not decoder!")
+
             # Get scores variable for returning.
             global current_attention_scores
             current_attention_scores = attn_weights
