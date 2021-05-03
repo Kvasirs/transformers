@@ -55,18 +55,7 @@ _TOKENIZER_FOR_DOC = "T5Tokenizer"
 ####################################################
 
 from .attention_tweaks import *
-
-w1_i = 17
-w2_i = 20
-
-tweaking_vectors = False
-tweaking_weights = False
-
-new_value = 1
-new_magnitude = 7
-
-current_attn_weights = None
-attn_qk_vecs = None
+from .attention_tweaks_config import *
 
 ####################################################
 # This dict contains ids and associated url
@@ -80,7 +69,6 @@ T5_PRETRAINED_MODEL_ARCHIVE_LIST = [
     "t5-11b",
     # See all T5 models at https://huggingface.co/models?filter=t5
 ]
-
 
 ####################################################
 # This is a conversion method from TF 1.0 to PyTorch
@@ -498,9 +486,12 @@ class T5Attention(nn.Module):
         # Key vector transformation for Attention Tweaking
         ####################################################
         
-        if not self.is_decoder and tweaking_vectors:
-            key_states = adjust_att_vecs(query_states, key_states,
-            w1_i, w2_i, new_value, new_magnitude)
+##        if not self.is_decoder and tweaking_vectors:
+##            key_states = adjust_att_vecs(query_states, key_states,
+##            w1_i, w2_i, new_value, new_magnitude)
+##            
+##            global attn_qk_vecs
+##            attn_qk_vecs = [query_states, key_states]
             
         ####################################################
         ####################################################
@@ -546,14 +537,16 @@ class T5Attention(nn.Module):
 
         if not self.is_decoder:
 
-            global current_attn_weights
-            global attn_qk_vecs
-    
-            attn_qk_vecs = [query_states, key_states]
-            current_attn_weights = attn_weights
+            global current_attention_scores
+            current_attention_scores = attn_weights
 
-            if tweaking_weights:
-                current_attn_weights = adjust_att_scores(attn_weights, w1_i, w2_i, new_value)
+            if tweaking_scores:
+                # Set attention scores to new value.
+                current_attention_scores =
+                adjust_att_scores(attn_weights,
+                                  first_word_index,
+                                  second_word_index,
+                                  updated_value)
         
         ####################################################
         ####################################################
