@@ -1,6 +1,6 @@
 # Selected word pairs for attention adjustment.
-first_word_index = 17
-second_word_index = 20
+first_word_index = 0
+second_word_index = 0
 
 # Should be true if adjusting scores not vectors.
 tweaking_scores = True
