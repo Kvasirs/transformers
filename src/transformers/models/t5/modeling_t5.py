@@ -54,8 +54,8 @@ _TOKENIZER_FOR_DOC = "T5Tokenizer"
 # Resources needed for Attention Tweaking
 ####################################################
 
-from ...attention_tweaks import tweaks as twk
-from ...attention_tweaks import config as twk_config
+import ...attention_tweaks as twk
+import ...attention_tweaks_config as twk_config
 
 ####################################################
 # This dict contains ids and associated url
@@ -540,7 +540,7 @@ class T5Attention(nn.Module):
             print("not decoder!")
 
             # Get scores variable for returning.
-            global twk_config.current_attention_scores
+            # global twk_config.current_attention_scores
             twk_config.current_attention_scores = attn_weights
 
             if twk_config.tweaking_scores:
