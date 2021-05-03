@@ -54,8 +54,8 @@ _TOKENIZER_FOR_DOC = "T5Tokenizer"
 # Resources needed for Attention Tweaking
 ####################################################
 
-import ...attention_tweaks as twk
-import ...attention_tweaks_config as twk_config
+from ...attention_tweaks import tweaks as twk
+from ...attention_tweaks import config as twk_config
 
 ####################################################
 # This dict contains ids and associated url
