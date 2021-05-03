@@ -537,16 +537,16 @@ class T5Attention(nn.Module):
 
         if not self.is_decoder:
 
+            # Get scores variable for returning.
             global current_attention_scores
             current_attention_scores = attn_weights
 
             if tweaking_scores:
                 # Set attention scores to new value.
-                current_attention_scores =
-                adjust_att_scores(attn_weights,
-                                  first_word_index,
-                                  second_word_index,
-                                  updated_value)
+                current_attention_scores = adjust_att_scores(attn_weights,
+                                                             first_word_index,
+                                                             second_word_index,
+                                                             updated_value)
         
         ####################################################
         ####################################################
