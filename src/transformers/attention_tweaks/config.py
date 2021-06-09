@@ -1,9 +1,12 @@
+# Tweaked positions - contains pos and new value.
+tweaked_positions = []
+
 # Selected word pairs for attention adjustment.
 first_word_index = 0
 second_word_index = 0
 
 # Should be true if adjusting scores not vectors.
-tweaking_scores = True
+tweaking_scores = False
 # Updated attention weight value.
 updated_value = 0.5
 # Attention scores (softmax values).

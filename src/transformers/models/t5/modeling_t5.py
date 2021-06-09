@@ -311,6 +311,7 @@ class T5Attention(nn.Module):
     def __init__(self, config: T5Config, has_relative_attention_bias=False):
         super().__init__()
         self.is_decoder = config.is_decoder
+        self.is_encoder_decoder = config.is_encoder_decoder 
         self.has_relative_attention_bias = has_relative_attention_bias
 
         self.relative_attention_num_buckets = config.relative_attention_num_buckets
@@ -535,24 +536,18 @@ class T5Attention(nn.Module):
         # Softmax adjustment tweak for Attention Tweaking
         ####################################################
 
-        if not self.is_decoder:
+        # If we're tweaking score.
+        if twk_config.tweaking_scores:
 
-            print("not decoder!")
+            # If enc-dec attention.
+            if not torch.sum(position_bias):
+
+                print("Adjusting Attention...")
+                twk.adjust_decoder_attention(attn_weights, twk_config.tweaked_positions)
 
             # Get scores variable for returning.
-            # global twk_config.current_attention_scores
             twk_config.current_attention_scores = attn_weights
 
-            if twk_config.tweaking_scores:
-
-                print("tweaking scores!")
-                
-                # Set attention scores to new value.
-                twk_config.current_attention_scores = twk.adjust_att_scores(attn_weights,
-                                                                            twk_config.first_word_index,
-                                                                            twk_config.second_word_index,
-                                                                            twk_config.updated_value)
-        
         ####################################################
         ####################################################
 
@@ -596,6 +591,7 @@ class T5LayerSelfAttention(nn.Module):
         )
         hidden_states = hidden_states + self.dropout(attention_output[0])
         outputs = (hidden_states,) + attention_output[1:]  # add attentions if we output them
+        
         return outputs
 
 
@@ -632,6 +628,7 @@ class T5LayerCrossAttention(nn.Module):
         )
         layer_output = hidden_states + self.dropout(attention_output[0])
         outputs = (layer_output,) + attention_output[1:]  # add attentions if we output them
+        
         return outputs
 
 
@@ -689,7 +686,7 @@ class T5Block(nn.Module):
         )
         hidden_states, present_key_value_state = self_attention_outputs[:2]
         attention_outputs = self_attention_outputs[2:]  # Keep self-attention outputs and relative position weights
-
+        
         # clamp inf values to enable fp16 training
         if hidden_states.dtype == torch.float16 and torch.isinf(hidden_states).any():
             clamp_value = torch.finfo(hidden_states.dtype).max - 1000

@@ -1,32 +1,96 @@
 import torch
 import numpy as np
 
-def adjust_att_scores(attention_weights, w1_i, w2_i, value):
+def adjust_decoder_attention_2(attention_weights, tweaks):
 
-    # Covert attention weight tensor to numpy array for modification.
     np_weights = attention_weights.numpy()
 
-    # For each attention head within block
-    for h in range(len(np_weights[0])):
-    
-        # Get all weights for the given first word at index w1_i.
-        w1_weights = np_weights[0][h][w1_i]
+    # For each beam and and head.
+    for b in range(len(np_weights)):
+        for h in range(len(np_weights[b])):
 
-        # Select all weights (except for weight at index w2_i) and normalize to 1.
-        w1_weights = [w1_weights[i] for i in range(len(w1_weights)) if i != w2_i]
-        w1_weights = [float(i) / sum(w1_weights) for i in w1_weights]
+            # Get all encdec attention weights.
+            weights = np_weights[b][h][0]
 
-        # Multiply by 1 - value, and add new value back in at w1_i.
-        # This ensures all weights will sum to 1.
-        w1_weights = [w * (1 - value) for w in w1_weights]
-        w1_weights.insert(w2_i, value)
+            # Changed sum.
+            new_value_sum = 0
 
-        # Set recaculated weights for first word.
-        np_weights[0][h][w1_i] = w1_weights
+            # Old value sum.
+            old_value_sum = 0
+
+            # Tweaked index list.
+            tweaked_indexes = []
+
+            print("old weights:")
+            print(weights)
+
+            # For each tweak and its indexes.
+            for tweak in tweaks:
+                for index in tweak["indexes"]:
+
+                    old_value_sum += weights[index]
+
+                    # If - value, calculate % decrease (min is 0).
+                    if tweak["value"] <= 0:
+                        weights[index] *= (100 - (-tweak["value"])) / 100
+                    else:
+                        # If + value, increase value by % of diff (1 - new value).
+                        weights[index] += (1 - weights[index]) * tweak["value"] / 100
+
+                    weights[index] /= len(tweak["indexes"])
+
+                    # Add new value to changed sum.
+                    new_value_sum += weights[index]
+
+                    # Add index to index list.
+                    tweaked_indexes.append(index)
+
+            # Once all values have been altered, change
+            # the remaining values to ensure sum = 1.
+            for i in range(len(weights)):
+                if i not in tweaked_indexes:
+                    weights[i] *= ((1 - new_value_sum) / (1 - old_value_sum))
+
+
+            print("new weights:")
+            print(weights)
+            print("\n")
+
+            # Set recalculated weights.
+            np_weights[b][h][0] = weights
 
     # Convert back to tensor.
-    attention_weights = torch.tensor(np_weights) 
-    
+    attention_weights = torch.tensor(np_weights)
+
+    return attention_weights
+
+def adjust_decoder_attention(attention_weights, tweaks):
+
+    np_weights = attention_weights.numpy()
+
+    # For each beam and and head.
+    for b in range(len(np_weights)):
+        for h in range(len(np_weights[b])):
+
+            # Get all encdec attention weights.
+            weights = np_weights[b][h][0]
+
+            # For each tweak and its indexes.
+            for tweak in tweaks:
+                for index in tweak["indexes"]:
+
+                    # Calculate new weight for index.
+                    weights[index] = weights[index] * tweak["value"]
+
+            # Normalize to 1.
+            weights = np.divide(weights, np.sum(weights))
+
+            # Set recalculated weights.
+            np_weights[b][h][0] = weights
+
+    # Convert back to tensor.
+    attention_weights = torch.tensor(np_weights)
+
     return attention_weights
 
 def adjust_att_vecs(q, k, w1_i, w2_i, sim, mag):
