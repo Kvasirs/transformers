@@ -66,6 +66,8 @@ import numpy as np
 
 def adjust_decoder_attention(attention_weights, tweaks):
 
+    print(type(attention_weights)
+
     np_weights = attention_weights.numpy()
 
     # For each beam and and head.
